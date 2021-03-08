@@ -1,4 +1,4 @@
-//package com.example.youtubelikewa.ui
+package com.example.youtubelikewa.ui.ex1//package com.example.youtubelikewa.ui
 //
 //import android.animation.Animator
 //import android.animation.AnimatorListenerAdapter

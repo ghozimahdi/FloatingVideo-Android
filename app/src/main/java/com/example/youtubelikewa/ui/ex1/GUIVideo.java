@@ -1,9 +1,10 @@
-package com.example.youtubelikewa.ui;
+package com.example.youtubelikewa.ui.ex1;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
+import android.content.res.Resources;
 import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Build;
@@ -45,6 +46,7 @@ public class GUIVideo {
     private AppCompatActivity activity;
     private GUIVideo coffeeVideo;
     private static GUIVideo instance;
+    private boolean isFullScreenVid = false;
 
     public GUIVideo(AppCompatActivity activity) {
         this.activity = activity;
@@ -87,8 +89,10 @@ public class GUIVideo {
     private YouTubePlayer youTubePlayer = null;
     private SeekBar seekBar;
     private boolean isSetupNeeded = true;
+    private boolean fullScreenToggleEnabled = false;
     private ImageView ytbPnlExpand;
     private ImageView ytbPnlClose;
+    private ImageView ytbPnlFull;
     private int positionX = 0;
     private int positionY = 100;
     private Handler visibleUIHandler;
@@ -127,6 +131,7 @@ public class GUIVideo {
 
     @SuppressLint("ClickableViewAccessibility")
     public GUIVideo videoSetup(String youtubeVideoId) {
+        fullScreenToggleEnabled = true;
         if (isSetupNeeded) {
             Display display = activity.getWindowManager().getDefaultDisplay();
             Point size = new Point();
@@ -145,7 +150,6 @@ public class GUIVideo {
 
                 @Override
                 public boolean onTouch(View v, MotionEvent event) {
-
                     switch (event.getAction()) {
                         case MotionEvent.ACTION_DOWN:
                             orgX = (int) event.getX();
@@ -154,16 +158,20 @@ public class GUIVideo {
                         case MotionEvent.ACTION_MOVE:
                             offsetX = (int) event.getRawX() - orgX;
                             offsetY = (int) event.getRawY() - orgY;
+
                             if (ytbPnlClose.getVisibility() == INVISIBLE)
                                 triggerVisibleUIEvent();
-                            else
+                            else if (!isFullScreenVid)
                                 popupWindow.update(offsetX, offsetY, -1, -1, true);
                             break;
                         case MotionEvent.ACTION_UP:
+                            offsetX = (int) event.getRawX() - (int) event.getX();
+                            offsetY = (int) event.getRawY() - (int) event.getY();
+
                             if (getFloatMode() == FLOAT_MOVE.STICKY)
                                 if (ytbPnlClose.getVisibility() == INVISIBLE)
                                     triggerVisibleUIEvent();
-                                else
+                                else if (!isFullScreenVid)
                                     repositionScript(popupWindow, offsetX, offsetY);
                             break;
                     }
@@ -173,7 +181,23 @@ public class GUIVideo {
             isSetupNeeded = false;
         }
         setPlayerView(youtubeVideoId);
+        setFullScreenListener(youtubeVideoId);
         return coffeeVideo;
+    }
+
+    private void setFullScreenListener(String youtubeVideoId) {
+        ytbPnlFull.setOnClickListener(v -> {
+            /*Intent i = new Intent(activity, FullScreenActivity.class);
+            i.putExtra("videoId", youtubeVideoId);
+            i.putExtra("startSecond", videoStartSecond);
+            activity.startActivity(i);*/
+            if (isFullScreenVid) {
+                expandVideoView(popupWindow, 1);
+            } else {
+                expandVideoView(popupWindow, 2);
+            }
+            isFullScreenVid = !isFullScreenVid;
+        });
     }
 
     private void triggerVisibleUIEvent() {
@@ -185,6 +209,11 @@ public class GUIVideo {
     private void visibleAndEnableUI() {
         ytbPnlClose.setVisibility(VISIBLE);
         ytbPnlExpand.setVisibility(VISIBLE);
+
+        if (fullScreenToggleEnabled) {
+            ytbPnlFull.setVisibility(VISIBLE);
+            ytbPnlFull.setEnabled(true);
+        }
 
         playPauseButton.setVisibility(VISIBLE);
         ytbPnlClose.setEnabled(true);
@@ -238,6 +267,19 @@ public class GUIVideo {
                 latestH.set((int) (((getPopupWidht() + (200 * (float) animation.getAnimatedValue())) / 16) * 9));
                 latestW.set((int) (getPopupWidht() + (200 * (float) animation.getAnimatedValue())));
                 popupWindow.update((getScreenWidht() - latestW.intValue()) / 2, positionY, latestW.intValue(), latestH.intValue());
+            } else if (type == 2) {
+                latestH.set((int) (((getPopupWidht() + (200 * (float) animation.getAnimatedValue())) / 16) * 9));
+                latestW.set((int) (getPopupWidht() + (200 * (float) animation.getAnimatedValue())));
+
+                Resources r = activity.getResources();
+                int yPx = Math.round(TypedValue.applyDimension(
+                        TypedValue.COMPLEX_UNIT_DIP, 24, r.getDisplayMetrics()));
+
+                //todo jika kamu ingin menjadikan vid screen fullscreen, edit aja code dibawah ini ya
+                //todo set aja posisi y = 0, dan size y = getscreenHeight
+                //todo rumus dibawah ini hanya keisengan ghozi aja itumah abaikan :p
+                popupWindow.update(0, yPx, getScreenWidht(),
+                        getScreenHeight() - (getNavBarSize() + yPx));
             }
         });
         anim.addListener(new AnimatorListenerAdapter() {
@@ -249,6 +291,15 @@ public class GUIVideo {
             }
         });
         anim.start();
+    }
+
+    private int getNavBarSize() {
+        Resources resources = activity.getResources();
+        int resourceId = resources.getIdentifier("navigation_bar_height", "dimen", "android");
+        if (resourceId > 0) {
+            return resources.getDimensionPixelSize(resourceId);
+        }
+        return 0;
     }
 
     private void setPlayerView(String youtubeVideoId) {
@@ -346,8 +397,19 @@ public class GUIVideo {
         popupWindow.setAnimationStyle(R.style.Animation);
     }
 
+    private void setFullScreenSize() {
+        popupWindow = new PopupWindow(activity.getBaseContext());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            popupWindow.setElevation(20);
+        }
+        popupWindow.setContentView(popupView);
+        popupWindow.setWidth(FrameLayout.LayoutParams.MATCH_PARENT);
+        popupWindow.setHeight(FrameLayout.LayoutParams.MATCH_PARENT);
+    }
+
     private void setUpViews(View v) {
         ytbPnlClose = v.findViewById(R.id.ytb_pnl_close);
+        ytbPnlFull = v.findViewById(R.id.ytb_pnl_full);
         ytbPnlExpand = v.findViewById(R.id.ytb_pnl_expand);
         playerView = v.findViewById(R.id.youtube_player);
         playerView.setEnableAutomaticInitialization(false);
@@ -355,6 +417,7 @@ public class GUIVideo {
         playPauseButton = v.findViewById(R.id.ytb_play_pause_button);
         progressBar = v.findViewById(R.id.ytb_progressbar);
         seekBar = v.findViewById(R.id.ytb_seek_bar);
+        ytbPnlFull.setVisibility(fullScreenToggleEnabled ? VISIBLE : GONE);
         setupUIListeners();
     }
 
@@ -381,6 +444,11 @@ public class GUIVideo {
                         ytbPnlClose.setVisibility(View.INVISIBLE);
                         ytbPnlExpand.setVisibility(View.INVISIBLE);
                         playPauseButton.setVisibility(View.INVISIBLE);
+
+                        if (fullScreenToggleEnabled) {
+                            ytbPnlFull.setVisibility(INVISIBLE);
+                            ytbPnlFull.setEnabled(false);
+                        }
 
                         ytbPnlClose.setEnabled(false);
                         ytbPnlExpand.setEnabled(false);

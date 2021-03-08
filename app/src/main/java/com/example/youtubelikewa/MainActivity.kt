@@ -3,8 +3,8 @@ package com.example.youtubelikewa
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.example.youtubelikewa.databinding.ActivityMainBinding
-import com.example.youtubelikewa.ui.FlyingVideo
-import com.example.youtubelikewa.ui.GUIVideo
+import com.example.youtubelikewa.ui.ex1.FlyingVideo
+import com.example.youtubelikewa.ui.ex1.GUIVideo
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.utils.YouTubePlayerTracker
 
 class MainActivity : AppCompatActivity() {
